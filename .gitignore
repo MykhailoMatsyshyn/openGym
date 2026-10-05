@@ -26,3 +26,5 @@ frontend/bundle-size.json
 api/.env.dev
 .vercel
 supabase/.temp/
+api/.env.supabase-db
+api/.env.render

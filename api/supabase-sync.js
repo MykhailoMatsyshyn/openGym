@@ -130,11 +130,17 @@ export function startMirror(dir) {
     timers.set(r, setTimeout(() => { timers.delete(r); flush(r); }, ms));
   };
 
-  const watcher = fs.watch(dir, { recursive: true }, (_ev, filename) => {
-    if (!filename) return;
-    const r = rel(dir, path.join(dir, filename.toString()));
-    if (isTracked(r)) schedule(r);
-  }).on('error', e => console.error('supabase: watcher error', e.message));
+  // A platform without recursive fs.watch still syncs, through the periodic scan alone.
+  let watcher = null;
+  try {
+    watcher = fs.watch(dir, { recursive: true }, (_ev, filename) => {
+      if (!filename) return;
+      const r = rel(dir, path.join(dir, filename.toString()));
+      if (isTracked(r)) schedule(r);
+    }).on('error', e => console.error('supabase: watcher error', e.message));
+  } catch (e) {
+    console.error(`supabase: no file watcher (${e.message}) — syncing every ${SCAN_MS / 1000}s`);
+  }
 
   const scan = setInterval(() => {
     const seen = new Set(localFiles(dir));
@@ -153,6 +159,6 @@ export function startMirror(dir) {
     });
   }
   console.log(`supabase: mirroring ${dir} → ${TABLE}`);
-  const stop = async () => { watcher.close(); clearInterval(scan); await drain(); };
+  const stop = async () => { watcher?.close(); clearInterval(scan); await drain(); };
   return { drain, stop };
 }
