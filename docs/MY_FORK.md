@@ -81,7 +81,7 @@ Data in Supabase: the MCP pulls a read-only snapshot into `~/.cache/opengym-mcp`
 every minute (`mcp/src/supabase-pull.js`):
 
 ```bash
-claude mcp add opengym -e SUPABASE_URL=... -e SUPABASE_SERVICE_ROLE_KEY=... -- node $PWD/mcp/src/index.js
+claude mcp add opengym -s user -e OPENGYM_UID=<id> -- $PWD/mcp/run-supabase.sh   # reads the key from api/.env.render
 ```
 
 Add `-e OPENGYM_UID=<id>` when there is more than one profile.
