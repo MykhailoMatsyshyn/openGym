@@ -24,3 +24,5 @@ frontend/bundle-size.json
 
 # Local dev secrets (scripts/dev.sh)
 api/.env.dev
+.vercel
+supabase/.temp/

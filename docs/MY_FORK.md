@@ -58,7 +58,7 @@ Railway sets `PORT` itself. Check: `https://<api-host>/api/health` → `{"ok":tr
 
 ## 4. Frontend on Vercel
 
-New project from this repo, **root directory `frontend`**. In `frontend/vercel.json` replace
+New project from this repo, **Root Directory `frontend`** with "include files outside the root" on (the build needs `api/coach/core`). In `frontend/vercel.json` replace
 `REPLACE-WITH-API-HOST` with the Railway host. Passkeys need one origin, and the rewrite keeps
 `/api` on the Vercel domain.
 

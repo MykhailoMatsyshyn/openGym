@@ -1,0 +1,12 @@
+**/node_modules
+media
+data
+api/data
+frontend/dist
+frontend/android
+frontend/ios
+website
+kubernetes
+assets
+docs
+.git
