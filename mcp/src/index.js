@@ -4,8 +4,20 @@
    No extra container, no new outbound network — your data stays in a folder you control. */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { TOOLS } from './tools.js'
-import { init, getUser } from './state.js'
+import os from 'node:os'
+import path from 'node:path'
+import { supabaseConfigured, pullSnapshot, startRefresh } from './supabase-pull.js'
+
+// Data in Supabase (api/supabase-sync.js): pull it into a local cache before state.js, which
+// reads OPENGYM_DATA when it is first imported — hence the dynamic imports below.
+if (supabaseConfigured()) {
+  const dir = process.env.OPENGYM_DATA ||= path.join(os.homedir(), '.cache', 'opengym-mcp')
+  try { await pullSnapshot(dir); console.error(`[opengym-mcp] Supabase snapshot in ${dir}`) }
+  catch (e) { console.error(`[opengym-mcp] ${e.message}`) }
+  startRefresh(dir, 60_000)
+}
+const { TOOLS } = await import('./tools.js')
+const { init, getUser } = await import('./state.js')
 
 const server = new McpServer({
   name: 'opengym',

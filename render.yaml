@@ -1,0 +1,33 @@
+# Render Blueprint for the openGym api (docs/MY_FORK.md). Dashboard → New → Blueprint → this repo.
+# Free plan: the service sleeps after ~15 min without requests; data survives because the api
+# mirrors DATA_DIR into Supabase (api/supabase-sync.js). The frontend is on Vercel.
+services:
+  - type: web
+    name: opengym-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - api/**
+    envVars:
+      - key: DATA_DIR
+        value: /data
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PASSWORD_LOGIN
+        value: "1"
+      # Asked for when the Blueprint is created:
+      - key: ORIGIN                       # https://<app>.vercel.app
+        sync: false
+      - key: RP_ID                        # <app>.vercel.app
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_UIDS                   # can stay empty until the first sign-in
+        sync: false
