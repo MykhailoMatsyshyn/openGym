@@ -760,7 +760,9 @@ body.chips-dragging *{cursor:inherit}
 .wprog{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:16px}
 .wprog i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width var(--med) var(--ease)}
 .exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:#fff;margin-bottom:12px}
-.exmedia img{width:100%;height:320px;object-fit:contain;display:block}
+/* The dataset's media is 180×180: at 320px the browser stretched it ~1.8× (3.5× on a retina
+   screen) and it went soft. 240px keeps the upscale near 1.3×. Videos of custom exercises keep 320. */
+.exmedia img{width:100%;height:240px;object-fit:contain;display:block}
 .exmedia .gifhint,.exmedia .giftoggle{
   position:absolute;bottom:9px;display:inline-flex;align-items:center;gap:4px;
   background:rgba(0,0,0,.45);color:#fff;border-radius:99px;padding:5px 11px;
@@ -777,7 +779,7 @@ body.chips-dragging *{cursor:inherit}
 /* both the animation and the still failed to load: a neutral tile instead of the browser's
    broken-image glyph; same heights as the picture so the card does not jump. tap retries. */
 .exmedia.broken{background:var(--surface-2)}
-.exmedia-x{width:100%;height:320px;display:flex;align-items:center;justify-content:center;color:var(--label-3);font-size:34px}
+.exmedia-x{width:100%;height:240px;display:flex;align-items:center;justify-content:center;color:var(--label-3);font-size:34px}
 .exmedia.compact .exmedia-x{height:120px}
 .exmedia.mini .exmedia-x{height:84px}
 /* a custom exercise's own video (components/CustomMedia.jsx): the same box as a picture, on black
