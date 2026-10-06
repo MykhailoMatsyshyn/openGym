@@ -1,0 +1,92 @@
+# Signed Android APK on every vX.Y.Z tag, published as a GitHub release of this fork.
+# The in-app updater (frontend/src/lib/update.js) reads the newest release from here.
+#
+#   git tag v2.0.1 && git push origin v2.0.1
+#
+# The tag is the version: versionName X.Y.Z, versionCode X*10000 + Y*100 + Z (always rising),
+# and __APP_VERSION__ in the web bundle. Signing key: repository secrets ANDROID_KEYSTORE_B64,
+# ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS — the same key forever, or Android refuses to
+# install an update over the installed app.
+name: Android release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Version from the tag
+        id: ver
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          if [[ ! "$VER" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::tag must look like v1.2.3, got $GITHUB_REF_NAME"; exit 1
+          fi
+          CODE=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          sed -i -E "s/versionCode [0-9]+/versionCode $CODE/; s/versionName \"[^\"]+\"/versionName \"$VER\"/" \
+            frontend/android/app/build.gradle
+          (cd frontend && npm version "$VER" --no-git-tag-version --allow-same-version)
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          echo "versionName $VER, versionCode $CODE"
+
+      - name: Build the web bundle into the native project
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build:mobile
+
+      - name: Build the release APK
+        working-directory: frontend/android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Sign
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          VER: ${{ steps.ver.outputs.ver }}
+        run: |
+          set -eu
+          if [ -z "$ANDROID_KEYSTORE_B64" ]; then echo "::error::ANDROID_KEYSTORE_B64 is not set"; exit 1; fi
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          KS="$RUNNER_TEMP/release.p12"
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$KS"
+          "$BT/zipalign" -f -p 4 frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$KS" --ks-type PKCS12 \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEYSTORE_PASSWORD \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" --out "openGym-$VER.apk" "$RUNNER_TEMP/aligned.apk"
+          rm -f "$KS"
+          "$BT/apksigner" verify --print-certs "openGym-$VER.apk"
+          sha256sum "openGym-$VER.apk" > "openGym-$VER.apk.sha256"
+          cat "openGym-$VER.apk.sha256"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.ver.outputs.ver }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "openGym-$VER.apk" "openGym-$VER.apk.sha256" \
+            --title "openGym $VER" --generate-notes

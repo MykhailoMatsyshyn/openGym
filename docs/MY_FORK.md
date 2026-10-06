@@ -88,14 +88,22 @@ Add `-e OPENGYM_UID=<id>` when there is more than one profile.
 
 ## 7. Phone app (Android)
 
-Needs Android Studio + Java 21. Every change I make in `frontend/` goes into the app on rebuild:
+Built in the cloud by `.github/workflows/android-release.yml` — no Android Studio needed:
 
 ```bash
-cd frontend
-npm run build:mobile     # build + copy into android/ and ios/
-npx cap open android     # Run on the phone, or Build → Build APK(s)
+git tag v2.0.1 && git push origin v2.0.1     # → signed APK in GitHub Releases, ~10 min
 ```
 
-In the app: Settings → **Connect to my server** → `https://<my-app>.vercel.app` and a pairing
-code from the web app. iPhone: Xcode (free Apple ID = reinstall every 7 days), or use the PWA
-from Safari → Add to Home Screen. More: [MOBILE.md](MOBILE.md).
+- The tag is the version (`vX.Y.Z` → versionName X.Y.Z, versionCode X*10000+Y*100+Z). Every new
+  tag must be higher than the last one.
+- App id `com.mykhailomatsyshyn.opengym`, so it installs next to the official openGym app.
+- First install: download the `.apk` from the release on the phone. After that the app finds
+  updates itself (Settings) from this fork's releases (`frontend/src/lib/update.js`).
+- Signing key: `~/.android-keystores/opengym/` (release.p12 + password.txt) and the repo secrets
+  `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`. **Back it up.** Without
+  the same key no update installs over the app; only uninstall + reinstall (local data lost).
+- Sync with the website: in the app, Settings → **Connect to my server** →
+  `https://opengym-omega.vercel.app` + a pairing code from the web app.
+
+Local build (needs Android Studio + Java 21): `cd frontend && npm run build:mobile && npx cap open android`.
+iPhone without Xcode: Safari → Share → Add to Home Screen (PWA). More: [MOBILE.md](MOBILE.md).
