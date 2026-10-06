@@ -88,5 +88,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VER: ${{ steps.ver.outputs.ver }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "openGym-$VER.apk" "openGym-$VER.apk.sha256" \
+          # openGym.apk: the same file under a name that never changes, so
+          # https://github.com/<repo>/releases/latest/download/openGym.apk always gets the newest one.
+          cp "openGym-$VER.apk" openGym.apk
+          gh release create "$GITHUB_REF_NAME" "openGym-$VER.apk" "openGym-$VER.apk.sha256" openGym.apk \
             --title "openGym $VER" --generate-notes
