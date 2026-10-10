@@ -7,12 +7,15 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
+    dockerfilePath: ./deploy/render-api.Dockerfile
+    dockerContext: .
     healthCheckPath: /api/health
     buildFilter:
       paths:
         - api/**
+        - mcp/**
+        - frontend/src/lib/**
+        - deploy/**
     envVars:
       - key: DATA_DIR
         value: /data
@@ -30,4 +33,6 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: ADMIN_UIDS                   # can stay empty until the first sign-in
+        sync: false
+      - key: MCP_TOKEN                    # 64 random hex chars; remote MCP at /mcp/<token>
         sync: false

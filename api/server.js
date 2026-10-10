@@ -2390,6 +2390,24 @@ function bodyDeadline(req) {
   req.allowSlowBody = clear;
 }
 
+/* Remote MCP (mcp/src/http.js) at /mcp/<MCP_TOKEN>, for claude.ai custom connectors. Off unless
+   MCP_TOKEN is set; the token is the whole credential, so it must be long and random. Loaded
+   from the repo's mcp/ folder, which only the fork's image (deploy/render-api.Dockerfile) carries. */
+const MCP_TOKEN = process.env.MCP_TOKEN || '';
+let handleMcp = null;
+if (MCP_TOKEN && MCP_TOKEN.length < 32) console.error('MCP_TOKEN is shorter than 32 characters — remote MCP stays off');
+else if (MCP_TOKEN) {
+  try {
+    const { createMcpHttpHandler } = await import('../mcp/src/http.js');
+    handleMcp = await createMcpHttpHandler({ dataDir: DATA });
+    console.log('remote MCP on /mcp/<token>');
+  } catch (e) { console.error('remote MCP could not start:', e.message); }
+}
+const mcpTokenOk = t => {
+  const a = Buffer.from(t), b = Buffer.from(MCP_TOKEN);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+
 const server = http.createServer(async (req, res) => {
   bodyDeadline(req);
   // Same-origin (the deployed nginx-proxied web app) never triggers CORS, so this only matters
@@ -2411,6 +2429,11 @@ const server = http.createServer(async (req, res) => {
   let url;
   try { url = new URL(req.url, 'http://x'); }
   catch { return json(res, 400, { error: 'bad request' }); }
+  if (handleMcp && url.pathname.startsWith('/mcp/')) {
+    if (!mcpTokenOk(url.pathname.slice(5))) return json(res, 404, { error: 'not found' });
+    try { return await handleMcp(req, res); }
+    catch (e) { console.error('mcp:', e.message); if (!res.headersSent) json(res, 500, { error: 'mcp failed' }); return; }
+  }
   let key = req.method + ' ' + url.pathname;
   // The one route with a parameter in its path. Mapped onto its template key here so the table
   // above stays a plain lookup, and so csrfOk and the catch-all see one name for every file.

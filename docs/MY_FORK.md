@@ -86,6 +86,14 @@ claude mcp add opengym -s user -e OPENGYM_UID=<id> -- $PWD/mcp/run-supabase.sh  
 
 Add `-e OPENGYM_UID=<id>` when there is more than one profile.
 
+### Remote MCP (claude.ai, Claude on the phone)
+
+The api on Render also serves MCP over HTTP at `https://<api-host>/mcp/<MCP_TOKEN>`
+(`mcp/src/http.js`, mounted in `api/server.js`; image `deploy/render-api.Dockerfile`).
+Set `MCP_TOKEN` (64 random hex chars, in `api/.env.render`) on Render → Environment, then
+claude.ai → Settings → Connectors → Add custom connector → Name `openGym`, URL as above.
+Read-only. Anyone with the URL can read the data: keep it secret, change the token if it leaks.
+
 ## 7. Phone app (Android)
 
 Built in the cloud by `.github/workflows/android-release.yml` — no Android Studio needed:
